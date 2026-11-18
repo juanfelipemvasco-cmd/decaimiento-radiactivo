@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Decaimiento radiactivo – Matemáticas 4</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg1:#1b0a3f; --bg2:#0e0624;
+    --panel:rgba(255,255,255,.045); --panel2:rgba(255,255,255,.07);
+    --line:rgba(255,255,255,.09);
+    --text:#f1ecff; --muted:#a99bd0;
+    --magenta:#d946ef; --pink:#ff4d8d; --orange:#ff9a3d; --purple:#8b5cf6; --teal:#35e0c0;
+    --grad:linear-gradient(135deg,#d946ef,#ff4d8d 55%,#ff9a3d);
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;min-height:100vh;color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+       background:radial-gradient(1200px 700px at 80% -10%,#3a1170 0%,transparent 60%),linear-gradient(160deg,var(--bg1),var(--bg2));
+       background-attachment:fixed;line-height:1.45}
+
+  /* ===== Layout ===== */
+  .app{display:grid;grid-template-columns:76px 1fr;min-height:100vh}
+  aside{position:sticky;top:0;height:100vh;display:flex;flex-direction:column;align-items:center;gap:10px;padding:18px 0;
+        background:linear-gradient(180deg,#c026d3,#7c1fb8 45%,#3b0f7a);box-shadow:6px 0 30px rgba(217,70,239,.25)}
+  .avatar{width:44px;height:44px;border-radius:50%;background:#fff;color:#4a1a8a;display:grid;place-items:center;font-weight:800;margin-bottom:14px}
+  aside a{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;color:#fff;text-decoration:none;font-size:1.25rem;opacity:.8;transition:.2s}
+  aside a:hover{background:rgba(255,255,255,.2);opacity:1}
+  .wrap{padding:22px 26px 40px;max-width:1500px;width:100%;margin:auto;min-width:0}
+
+  /* ===== Top bar ===== */
+  .topbar{display:flex;gap:14px;align-items:center;margin-bottom:20px;flex-wrap:wrap}
+  .pill{flex:1;min-width:260px;display:flex;align-items:center;justify-content:space-between;gap:12px;background:#f6e9d6;color:#2a1450;border-radius:999px;padding:8px 8px 8px 22px}
+  .pill .eqt{font-family:"Cambria Math","Times New Roman",serif;font-size:1.1rem;font-weight:600}
+  .pill button{border:0;border-radius:999px;padding:10px 22px;font-weight:700;color:#fff;background:var(--grad);cursor:pointer}
+  .week{color:var(--muted);font-size:.8rem;text-align:right}
+  .week b{display:block;color:var(--text);font-size:.95rem}
+
+  /* ===== Panels ===== */
+  .panel,.grid>*,.two>*,.stack>*{min-width:0}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px;backdrop-filter:blur(6px)}
+  .panel h2{margin:0 0 14px;font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;color:var(--text);font-weight:700}
+  .panel h2 span{color:var(--muted);font-weight:500;letter-spacing:.04em;text-transform:none;margin-left:6px}
+
+  /* KPI */
+  .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-bottom:18px}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px 16px;text-align:center;min-width:0}
+  .kpi small{display:flex;justify-content:center;align-items:center;gap:7px;color:var(--muted);font-size:.68rem;letter-spacing:.12em;text-transform:uppercase}
+  .dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+  .kpi strong{display:block;font-size:1.55rem;margin:6px 0 2px;font-weight:700;overflow-wrap:anywhere}
+  .kpi em{font-style:normal;color:var(--muted);font-size:.72rem}
+  .kpi.tipo strong{font-size:1.05rem;line-height:1.25;min-height:2.6rem;display:grid;place-items:center;
+        background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+  /* Main grid */
+  .grid{display:grid;grid-template-columns:310px 1fr 330px;gap:18px;margin-bottom:18px}
+  .stack{display:flex;flex-direction:column;gap:18px}
+  .chart-box{position:relative;height:340px}
+  .chart-box.sm{height:260px}
+
+  /* Form */
+  label{display:block;font-size:.72rem;color:var(--muted);margin:10px 0 4px;letter-spacing:.04em}
+  input,select{width:100%;padding:9px 11px;border-radius:10px;border:1px solid var(--line);background:rgba(10,3,30,.55);color:var(--text);font-size:.92rem}
+  input:focus,select:focus{outline:2px solid var(--magenta);border-color:transparent}
+  select option{background:#1b0a3f}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .hint{font-size:.7rem;color:var(--muted);margin-top:4px}
+  .go{margin-top:16px;width:100%;border:0;border-radius:12px;padding:12px;font-weight:700;font-size:.95rem;color:#fff;background:var(--grad);cursor:pointer;box-shadow:0 8px 24px rgba(217,70,239,.35)}
+  .go:hover{filter:brightness(1.08)}
+  .error{display:none;background:rgba(255,77,141,.15);border:1px solid var(--pink);color:#ffc2d9;padding:10px 12px;border-radius:10px;margin-bottom:12px;font-size:.85rem}
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:999px;padding:7px 13px;font-size:.78rem;cursor:pointer;transition:.2s}
+  .chip:hover{background:var(--grad);border-color:transparent}
+
+  /* Gauges */
+  .gauges{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  .gauge{text-align:center}
+  .gauge .cv{position:relative;height:130px}
+  .gauge small{display:block;margin-top:8px;color:var(--muted);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase}
+
+  /* Analysis tiles */
+  .tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+  .tile{background:rgba(10,3,30,.45);border:1px solid var(--line);border-radius:14px;padding:12px 14px;min-width:0}
+  .tile.full{grid-column:1/-1}
+  .tile small{display:block;color:var(--muted);font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;margin-bottom:4px}
+  .tile .v{font-family:"Cambria Math","Times New Roman",serif;font-size:1.08rem;word-break:break-word}
+
+  /* Tables */
+  .tw{overflow:auto;border-radius:14px;border:1px solid var(--line);max-height:420px}
+  table{width:100%;border-collapse:collapse;font-size:.88rem}
+  thead th{position:sticky;top:0;background:linear-gradient(90deg,#7c1fb8,#c026d3);color:#fff;text-align:right;font-weight:600;
+           padding:10px 14px;font-size:.74rem;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}
+  thead th:first-child,tbody td:first-child{text-align:left}
+  tbody td{padding:9px 14px;text-align:right;font-variant-numeric:tabular-nums;border-bottom:1px solid var(--line)}
+  tbody tr:nth-child(even){background:rgba(255,255,255,.035)}
+  tbody tr:hover{background:rgba(217,70,239,.18)}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
+
+  details summary{cursor:pointer;font-weight:700;letter-spacing:.1em;text-transform:uppercase;font-size:.78rem}
+  details p{color:#d9d0f2;font-size:.92rem;margin:10px 0}
+  .eq{font-family:"Cambria Math","Times New Roman",serif;font-size:1.2rem;text-align:center;padding:12px;background:rgba(10,3,30,.5);border-radius:12px;margin:10px 0}
+  .mono{font-family:"Cambria Math","Times New Roman",serif}
+  button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
+
+  #resultados{display:none}
+
+  @media(max-width:1250px){.grid{grid-template-columns:300px 1fr}.grid .phase{grid-column:1/-1}.kpis{grid-template-columns:repeat(3,1fr)}}
+  @media(max-width:900px){
+    .app{grid-template-columns:1fr}
+    aside{display:none}
+    .wrap{padding:14px}
+    .grid,.two{grid-template-columns:1fr}
+    .kpis{grid-template-columns:repeat(2,1fr)}
+    .gauges{grid-template-columns:repeat(2,1fr)}
+    .tiles{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <aside>
+    <div class="avatar">Σ</div>
+    <a href="#inicio" title="Inicio">🏠</a>
+    <a href="#graficas" title="Gráficas">📈</a>
+    <a href="#analisis" title="Análisis">🧮</a>
+    <a href="#tablas" title="Tablas">📋</a>
+    <a href="#teoria" title="Teoría">📘</a>
+  </aside>
+
+  <div class="wrap" id="inicio">
+
+    <div class="topbar">
+      <div class="pill">
+        <span class="eqt">dA/dt = k·A &nbsp;,&nbsp; A(0) = A₀</span>
+        <button id="calcTop">Calcular</button>
+      </div>
+      <div class="week">Decaimiento radiactivo<b>Matemáticas 4</b></div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="kpis">
+      <div class="kpi tipo"><small><span class="dot" style="background:var(--magenta)"></span>Tipo</small><strong id="kTipo">—</strong><em>según el signo de k</em></div>
+      <div class="kpi"><small><span class="dot" style="background:var(--orange)"></span>k</small><strong id="kK">—</strong><em id="kKu">1/tiempo</em></div>
+      <div class="kpi"><small><span class="dot" style="background:var(--pink)"></span><span id="kTLab">Vida media</span></small><strong id="kT">—</strong><em id="kTu">tiempo</em></div>
+      <div class="kpi"><small><span class="dot" style="background:var(--purple)"></span>A(t final)</small><strong id="kA">—</strong><em id="kAu">cantidad</em></div>
+      <div class="kpi"><small><span class="dot" style="background:var(--teal)"></span>dA/dt en t = 0</small><strong id="kR">—</strong><em id="kRu">cantidad/tiempo</em></div>
+    </div>
+
+    <!-- Parámetros | Línea de tiempo | Gráficas auxiliares -->
+    <div class="grid" id="graficas">
+      <div class="stack">
+        <div class="panel">
+          <h2>Parámetros</h2>
+          <div id="error" class="error"></div>
+
+          <label for="A0">A₀ · Cantidad inicial</label>
+          <input id="A0" type="number" step="any" value="100">
+
+          <label for="modo">Dato conocido</label>
+          <select id="modo">
+            <option value="half">Vida media T½ (decaimiento)</option>
+            <option value="k">Constante k (con signo)</option>
+            <option value="double">Tiempo de duplicación (crecimiento)</option>
+          </select>
+
+          <label for="val" id="lblVal">T½ · Vida media</label>
+          <input id="val" type="number" step="any" value="1600">
+          <div class="hint" id="hintVal">Ej.: radio-226 tiene vida media de 1600 años.</div>
+
+          <div class="row">
+            <div><label for="uT">Unidad de tiempo</label><input id="uT" type="text" value="años"></div>
+            <div><label for="uA">Unidad de A</label><input id="uA" type="text" value="g"></div>
+          </div>
+
+          <label for="tf">Tiempo final</label>
+          <input id="tf" type="number" step="any" value="8000">
+
+          <label for="obj">A* · Cantidad objetivo (opcional)</label>
+          <input id="obj" type="number" step="any" placeholder="¿cuándo llega A a este valor?" value="">
+
+          <button class="go" id="calcBtn">Calcular y graficar</button>
+        </div>
+
+        <div class="panel">
+          <h2>Ejemplos</h2>
+          <div class="chips">
+            <button class="chip" data-ex="ra226">Radio-226</button>
+            <button class="chip" data-ex="rn222">Radón-222</button>
+            <button class="chip" data-ex="c14">Carbono-14</button>
+            <button class="chip" data-ex="i131">Yodo-131</button>
+            <button class="chip" data-ex="med">Medicamento</button>
+            <button class="chip" data-ex="pob">Crecimiento (k &gt; 0)</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Línea de tiempo <span>A(t) = A₀·e<sup>kt</sup></span></h2>
+        <div class="chart-box" style="height:520px"><canvas id="cT"></canvas></div>
+      </div>
+
+      <div class="stack phase">
+        <div class="panel">
+          <h2>Razón de cambio <span>dA/dt vs t</span></h2>
+          <div class="chart-box sm"><canvas id="cR"></canvas></div>
+        </div>
+        <div class="panel">
+          <h2>Proporcionalidad <span>dA/dt vs A</span></h2>
+          <div class="chart-box sm"><canvas id="cL"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="resultados">
+
+      <!-- Indicadores circulares -->
+      <div class="panel" style="margin-bottom:18px">
+        <h2>Indicadores</h2>
+        <div class="gauges">
+          <div class="gauge"><div class="cv"><canvas id="g1"></canvas></div><small id="g1l">A(t final) / A₀</small></div>
+          <div class="gauge"><div class="cv"><canvas id="g2"></canvas></div><small id="g2l">Desintegrado</small></div>
+          <div class="gauge"><div class="cv"><canvas id="g3"></canvas></div><small id="g3l">Vidas medias transcurridas</small></div>
+          <div class="gauge"><div class="cv"><canvas id="g4"></canvas></div><small id="g4l">Tras 1 vida media</small></div>
+        </div>
+      </div>
+
+      <!-- Análisis -->
+      <div class="panel" id="analisis" style="margin-bottom:18px">
+        <h2>Análisis de la ecuación diferencial</h2>
+        <div class="tiles">
+          <div class="tile"><small>Ecuación diferencial</small><div class="v">dA/dt = k·A</div></div>
+          <div class="tile"><small>Condición inicial</small><div class="v" id="ci"></div></div>
+          <div class="tile"><small>Constante de proporcionalidad k</small><div class="v" id="kval"></div></div>
+          <div class="tile"><small>Tipo de comportamiento</small><div class="v" id="tipo"></div></div>
+          <div class="tile full"><small>Solución del problema con valores iniciales</small><div class="v" id="sol"></div></div>
+          <div class="tile full"><small>Procedimiento (separación de variables)</small><div class="v" id="proc"></div></div>
+          <div class="tile"><small id="tTLab">Vida media T½ = ln 2 / |k|</small><div class="v" id="tT"></div></div>
+          <div class="tile"><small>Tiempo para llegar a A*</small><div class="v" id="tObj"></div></div>
+        </div>
+      </div>
+
+      <!-- Tablas -->
+      <div class="two" id="tablas">
+        <div class="panel">
+          <h2>Resumen de valores</h2>
+          <div class="tw"><table>
+            <thead><tr><th>Magnitud</th><th>Valor</th><th>Unidad</th></tr></thead>
+            <tbody id="claves"></tbody>
+          </table></div>
+        </div>
+        <div class="panel">
+          <h2>Tabla de valores <span>11 puntos</span></h2>
+          <div class="tw"><table>
+            <thead><tr><th id="thT">t</th><th id="thA">A(t)</th><th id="thR">dA/dt</th><th>% de A₀</th></tr></thead>
+            <tbody id="tabla"></tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <div class="panel" id="panelMedias" style="margin-bottom:18px">
+        <h2 id="hMedias">Vidas medias <span>cada una reduce A a la mitad</span></h2>
+        <div class="tw"><table>
+          <thead><tr><th id="thN">n</th><th id="thTn">Tiempo</th><th id="thAn">A(t)</th><th>% de A₀</th></tr></thead>
+          <tbody id="medias"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <div class="panel" id="teoria">
+      <details>
+        <summary>📘 Teoría · ¿de dónde sale la ecuación?</summary>
+        <p>Los núcleos de muchos átomos son inestables: con el tiempo se desintegran y se transforman en átomos de otra sustancia. Se dice que son <b>radiactivos</b>. Por ejemplo, el radio Ra-226 se transforma en el gas radón Rn-222.</p>
+        <p>Para modelar este fenómeno se supone que la razón con que los núcleos se desintegran, dA/dt, es <b>proporcional</b> a la cantidad A(t) de sustancia que queda en el tiempo t:</p>
+        <div class="eq">dA/dt = k·A</div>
+        <p>Es la misma ecuación del crecimiento de una población, solo que cambia la interpretación de los símbolos. En el <b>crecimiento</b>, k &gt; 0. En el <b>decaimiento</b>, k &lt; 0. También modela el interés compuesto continuo (dS/dt = rS) y la vida media de un medicamento en el cuerpo.</p>
+        <p><b>Resolución:</b> se separan variables, dA/A = k dt, y se integra: ln|A| = kt + C. Con la condición inicial A(0) = A₀ se obtiene:</p>
+        <div class="eq">A(t) = A₀·e<sup>kt</sup></div>
+        <p><b>Vida media:</b> es el tiempo T½ en que la cantidad se reduce a la mitad. Se calcula con A₀/2 = A₀·e<sup>kT½</sup>, de donde <span class="mono">T½ = ln 2 / |k|</span>. No depende de la cantidad inicial.</p>
+        <p>Una sola ecuación diferencial puede servir como modelo matemático de muchos fenómenos distintos. Junto con la condición inicial A(0) = A₀ forma un problema con valores iniciales.</p>
+      </details>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const LN2 = Math.LN2;
+
+/* ---------- Formato ---------- */
+function fmt(x, d = 5){
+  if (!isFinite(x)) return "—";
+  if (x === 0) return "0";
+  const a = Math.abs(x);
+  if (a < 1e-4 || a >= 1e6) return x.toExponential(3);
+  return String(Number(x.toPrecision(d)));
+}
+
+/* ---------- Lectura / validación ---------- */
+function leer(){
+  const v = id => parseFloat($(id).value);
+  const p = { A0: v("A0"), modo: $("modo").value, val: v("val"), tf: v("tf"),
+              uT: $("uT").value.trim() || "t", uA: $("uA").value.trim() || "u",
+              obj: $("obj").value.trim() === "" ? null : v("obj") };
+  if (!isFinite(p.A0) || !isFinite(p.val) || !isFinite(p.tf)) throw new Error("Completa todos los campos con números válidos.");
+  if (p.A0 <= 0) throw new Error("La cantidad inicial A₀ debe ser mayor que 0.");
+  if (p.tf <= 0) throw new Error("El tiempo final debe ser mayor que 0.");
+  if (p.obj !== null && (!isFinite(p.obj) || p.obj <= 0)) throw new Error("La cantidad objetivo A* debe ser un número mayor que 0.");
+
+  if (p.modo === "k") p.k = p.val;
+  else {
+    if (p.val <= 0) throw new Error("La vida media o el tiempo de duplicación debe ser mayor que 0.");
+    p.k = (p.modo === "half" ? -LN2 : LN2) / p.val;
+  }
+  if (Math.abs(p.k * p.tf) > 700) throw new Error("k·t es demasiado grande y el resultado se sale del rango. Reduce el tiempo final.");
+  return p;
+}
+
+/* ---------- Análisis ---------- */
+function analisis(p){
+  const k = p.k, A0 = p.A0;
+  const o = {};
+  if (k < 0){ o.tipo = "Decaimiento"; o.T = LN2 / Math.abs(k); o.TLab = "Vida media"; o.TLab2 = "Vida media T½ = ln 2 / |k|"; }
+  else if (k > 0){ o.tipo = "Crecimiento"; o.T = LN2 / k; o.TLab = "Duplicación"; o.TLab2 = "Tiempo de duplicación Td = ln 2 / k"; }
+  else { o.tipo = "Equilibrio (k = 0)"; o.T = Infinity; o.TLab = "Vida media"; o.TLab2 = "Vida media T½"; }
+
+  o.sol = `A(t) = ${fmt(A0)}·e^(${fmt(k)}·t)`;
+  o.proc = `dA/A = k dt  →  ln|A| = kt + C  →  A(t) = C₁·e^(kt).  Con A(0) = ${fmt(A0)} se obtiene C₁ = ${fmt(A0)}.`;
+  o.ci = `A(0) = A₀ = ${fmt(A0)} ${p.uA}`;
+  if (p.obj !== null){
+    if (k === 0) o.tObj = (p.obj === A0) ? "A ya vale A* (constante)" : "No se alcanza (k = 0)";
+    else {
+      const t = Math.log(p.obj / A0) / k;
+      o.tObj = (t >= 0) ? `t = ln(A*/A₀)/k = ${fmt(t)} ${p.uT}` : "No se alcanza: A se aleja de ese valor";
+      o.tObjVal = t >= 0 ? t : null;
+    }
+  } else o.tObj = "Escribe A* en los parámetros para calcularlo";
+  return o;
+}
+
+/* ---------- Gráficas ---------- */
+Chart.defaults.color = "#a99bd0";
+Chart.defaults.font.family = "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
+const charts = {};
+const GRID = "rgba(255,255,255,.07)";
+
+function gradient(c1, c2){
+  return ctx => {
+    const a = ctx.chart.chartArea;
+    if (!a) return c1;
+    const g = ctx.chart.ctx.createLinearGradient(0, a.top, 0, a.bottom);
+    g.addColorStop(0, c1); g.addColorStop(1, c2);
+    return g;
+  };
+}
+function lineStyle(color, fillTop, fillBot, fill = true){
+  return { borderColor: color, borderWidth: 2.4, pointRadius: 0, tension: .25, fill,
+           backgroundColor: gradient(fillTop, fillBot) };
+}
+function baseOpts(xl, yl){
+  return {
+    responsive: true, maintainAspectRatio: false, animation: false,
+    interaction: { mode: "nearest", intersect: false },
+    plugins: { legend: { labels: { usePointStyle: true, boxWidth: 8 } },
+               tooltip: { backgroundColor: "#1b0a3f", borderColor: "#d946ef", borderWidth: 1 } },
+    scales: {
+      x: { type: "linear", title: { display: !!xl, text: xl }, grid: { color: GRID } },
+      y: { title: { display: !!yl, text: yl }, grid: { color: GRID } }
+    }
+  };
+}
+function mk(id, cfg){ if (charts[id]) charts[id].destroy(); charts[id] = new Chart($(id), cfg); }
+
+function gauge(id, pct, texto, c1, c2){
+  const v = Math.max(0, Math.min(100, pct));
+  mk(id, {
+    type: "doughnut",
+    data: { datasets: [{ data: [v, 100 - v], borderWidth: 0,
+      backgroundColor: ctx => {
+        const a = ctx.chart.chartArea; if (!a) return c1;
+        if (ctx.dataIndex === 1) return "rgba(255,255,255,.08)";
+        const g = ctx.chart.ctx.createLinearGradient(a.left, a.top, a.right, a.bottom);
+        g.addColorStop(0, c1); g.addColorStop(1, c2); return g;
+      } }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: "76%", animation: false,
+               plugins: { legend: { display: false }, tooltip: { enabled: false } } },
+    plugins: [{ id: "ct", afterDraw(ch){
+      const {ctx, chartArea:a} = ch; ctx.save();
+      ctx.fillStyle = "#f1ecff"; ctx.font = "700 19px system-ui"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(texto, (a.left + a.right)/2, (a.top + a.bottom)/2); ctx.restore();
+    } }]
+  });
+}
+
+let ultimo = null;
+function dibujar(){
+  if (!ultimo) return;
+  const {p, an, T, A, R} = ultimo;
+  const k = p.k, A0 = p.A0;
+  const pts = (xs, ys) => xs.map((x, i) => ({x, y: ys[i]}));
+
+  // Línea de tiempo A(t)
+  const ds = [{ label: "A(t)", data: pts(T, A), ...lineStyle("#ff9a3d", "rgba(255,154,61,.55)", "rgba(217,70,239,.04)") }];
+  if (k < 0) ds.push({ label: "A₀/2", data: [{x:0, y:A0/2}, {x:p.tf, y:A0/2}], borderColor:"#35e0c0", borderWidth:1.5, borderDash:[6,5], pointRadius:0, fill:false });
+  mk("cT", { type: "line", options: baseOpts(`t (${p.uT})`, `A (${p.uA})`), data: { datasets: ds } });
+
+  // dA/dt vs t
+  mk("cR", { type: "line", options: baseOpts(`t (${p.uT})`, `dA/dt (${p.uA}/${p.uT})`), data: { datasets: [
+    { label: "dA/dt", data: pts(T, R), ...lineStyle("#ff4d8d", "rgba(255,77,141,.5)", "rgba(255,77,141,.03)") }
+  ] } });
+
+  // dA/dt vs A  (recta de pendiente k)
+  const Amax = Math.max(A0, A[A.length-1]);
+  mk("cL", { type: "line", options: baseOpts(`A (${p.uA})`, `dA/dt (${p.uA}/${p.uT})`), data: { datasets: [
+    { label: `Pendiente k = ${fmt(k, 4)}`, data: [{x:0, y:0}, {x:Amax, y:k*Amax}], borderColor:"#35e0c0", borderWidth:2.4, pointRadius:4, pointBackgroundColor:"#35e0c0", fill:false }
+  ] } });
+
+  // Indicadores
+  const ratio = A[A.length-1] / A0;
+  gauge("g1", ratio * 100, fmt(ratio * 100, 3) + "%", "#d946ef", "#8b5cf6");
+  $("g1l").textContent = "A(t final) / A₀";
+
+  if (k < 0){
+    $("g2l").textContent = "Desintegrado";
+    gauge("g2", (1 - ratio) * 100, fmt((1 - ratio) * 100, 3) + "%", "#ff4d8d", "#ff9a3d");
+    $("g3l").textContent = "Vidas medias transcurridas";
+    const n = p.tf / an.T;
+    gauge("g3", n / 10 * 100, fmt(n, 3), "#8b5cf6", "#d946ef");
+    $("g4l").textContent = "Tras 1 vida media";
+    gauge("g4", 50, "50%", "#ff9a3d", "#ff4d8d");
+  } else if (k > 0){
+    $("g2l").textContent = "Aumento";
+    gauge("g2", (ratio - 1) * 100, "+" + fmt((ratio - 1) * 100, 3) + "%", "#ff4d8d", "#ff9a3d");
+    $("g3l").textContent = "Duplicaciones transcurridas";
+    const n = p.tf / an.T;
+    gauge("g3", n / 10 * 100, fmt(n, 3), "#8b5cf6", "#d946ef");
+    $("g4l").textContent = "Tras 1 duplicación";
+    gauge("g4", 100, "×2", "#ff9a3d", "#ff4d8d");
+  } else {
+    $("g2l").textContent = "Cambio";
+    gauge("g2", 0, "0%", "#ff4d8d", "#ff9a3d");
+    $("g3l").textContent = "Vidas medias transcurridas";
+    gauge("g3", 0, "—", "#8b5cf6", "#d946ef");
+    $("g4l").textContent = "Tras 1 vida media";
+    gauge("g4", 100, "100%", "#ff9a3d", "#ff4d8d");
+  }
+}
+
+/* ---------- Calcular ---------- */
+function calcular(){
+  const err = $("error");
+  err.style.display = "none";
+  try{
+    const p = leer();
+    const an = analisis(p);
+    const k = p.k, A0 = p.A0;
+    const N = 600;
+    const T = [], A = [], R = [];
+    for (let i = 0; i <= N; i++){
+      const t = p.tf * i / N;
+      const a = A0 * Math.exp(k * t);
+      T.push(t); A.push(a); R.push(k * a);
+    }
+    ultimo = {p, an, T, A, R};
+    $("resultados").style.display = "block";
+
+    const Af = A[N], ratio = Af / A0;
+    const uK = `${p.uT}⁻¹`, uR = `${p.uA}/${p.uT}`;
+
+    // KPIs
+    $("kTipo").textContent = an.tipo;
+    $("kK").textContent = fmt(k, 4);   $("kKu").textContent = uK;
+    $("kTLab").textContent = an.TLab;
+    $("kT").textContent = isFinite(an.T) ? fmt(an.T, 4) : "∞";  $("kTu").textContent = p.uT;
+    $("kA").textContent = fmt(Af, 4);  $("kAu").textContent = p.uA;
+    $("kR").textContent = fmt(k * A0, 4); $("kRu").textContent = uR;
+
+    // Análisis
+    $("ci").textContent = an.ci;
+    $("kval").textContent = `k = ${fmt(k)} ${uK}`;
+    $("tipo").textContent = k < 0 ? "Decaimiento (k < 0)" : k > 0 ? "Crecimiento (k > 0)" : "Sin cambio (k = 0)";
+    $("sol").textContent = an.sol;
+    $("proc").textContent = an.proc;
+    $("tTLab").textContent = an.TLab2;
+    $("tT").textContent = isFinite(an.T) ? `${fmt(an.T)} ${p.uT}` : "No existe (k = 0)";
+    $("tObj").textContent = an.tObj;
+
+    // Resumen
+    const filas = [
+      ["Cantidad inicial A₀", fmt(A0), p.uA],
+      ["Constante k", fmt(k), uK],
+      [an.TLab, isFinite(an.T) ? fmt(an.T) : "∞", p.uT],
+      [`A(${fmt(p.tf)})`, fmt(Af), p.uA],
+      ["Porcentaje de A₀ en t final", fmt(ratio * 100) + " %", "—"],
+      [k < 0 ? "Cantidad desintegrada" : "Cambio de cantidad", fmt(Af - A0), p.uA],
+      ["Rapidez inicial dA/dt(0)", fmt(k * A0), uR],
+      ["Rapidez final dA/dt(t final)", fmt(k * Af), uR],
+    ];
+    $("claves").innerHTML = filas.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join("");
+
+    // Tabla de valores
+    $("thT").textContent = `t (${p.uT})`; $("thA").textContent = `A(t) (${p.uA})`; $("thR").textContent = `dA/dt (${uR})`;
+    let h = "";
+    for (let j = 0; j <= 10; j++){
+      const i = Math.round(j * N / 10);
+      h += `<tr><td>${fmt(T[i])}</td><td>${fmt(A[i])}</td><td>${fmt(R[i])}</td><td>${fmt(A[i] / A0 * 100, 4)}</td></tr>`;
+    }
+    $("tabla").innerHTML = h;
+
+    // Tabla de vidas medias / duplicaciones
+    if (k === 0){
+      $("panelMedias").style.display = "none";
+    } else {
+      $("panelMedias").style.display = "";
+      const dec = k < 0;
+      $("hMedias").innerHTML = dec ? "Vidas medias <span>cada una reduce A a la mitad</span>" : "Tiempos de duplicación <span>cada uno duplica A</span>";
+      $("thN").textContent = dec ? "Vidas medias (n)" : "Duplicaciones (n)";
+      $("thTn").textContent = `Tiempo (${p.uT})`; $("thAn").textContent = `A(t) (${p.uA})`;
+      let m = "";
+      for (let n = 0; n <= 6; n++){
+        const f = dec ? Math.pow(2, -n) : Math.pow(2, n);
+        m += `<tr><td>${n}</td><td>${fmt(n * an.T)}</td><td>${fmt(A0 * f)}</td><td>${fmt(f * 100, 4)}</td></tr>`;
+      }
+      $("medias").innerHTML = m;
+    }
+
+    dibujar();
+  } catch(e){
+    err.textContent = "⚠ " + e.message;
+    err.style.display = "block";
+  }
+}
+
+/* ---------- UI ---------- */
+function actualizarCampos(){
+  const m = $("modo").value;
+  if (m === "half"){ $("lblVal").textContent = "T½ · Vida media"; $("hintVal").textContent = "Tiempo en que la cantidad se reduce a la mitad."; }
+  else if (m === "double"){ $("lblVal").textContent = "Td · Tiempo de duplicación"; $("hintVal").textContent = "Tiempo en que la cantidad se duplica (k > 0)."; }
+  else { $("lblVal").textContent = "k · Constante de proporcionalidad"; $("hintVal").textContent = "Negativa para decaimiento, positiva para crecimiento."; }
+}
+$("modo").addEventListener("change", actualizarCampos);
+$("calcBtn").addEventListener("click", calcular);
+$("calcTop").addEventListener("click", calcular);
+document.addEventListener("keydown", e => { if (e.key === "Enter" && e.target.tagName === "INPUT") calcular(); });
+
+const ejemplos = {
+  ra226: {A0:100, modo:"half",   val:1600,  tf:8000,  uT:"años",  uA:"g",    obj:25},
+  rn222: {A0:10,  modo:"half",   val:3.82,  tf:30,    uT:"días",  uA:"µg",   obj:""},
+  c14:   {A0:100, modo:"half",   val:5730,  tf:30000, uT:"años",  uA:"%",    obj:10},
+  i131:  {A0:50,  modo:"half",   val:8.02,  tf:60,    uT:"días",  uA:"mg",   obj:5},
+  med:   {A0:500, modo:"half",   val:6,     tf:36,    uT:"horas", uA:"mg",   obj:50},
+  pob:   {A0:1000,modo:"k",      val:0.35,  tf:12,    uT:"horas", uA:"bacterias", obj:50000},
+};
+document.querySelectorAll("[data-ex]").forEach(b => b.addEventListener("click", () => {
+  const e = ejemplos[b.dataset.ex];
+  $("A0").value = e.A0; $("modo").value = e.modo; $("val").value = e.val; $("tf").value = e.tf;
+  $("uT").value = e.uT; $("uA").value = e.uA; $("obj").value = e.obj;
+  actualizarCampos();
+  calcular();
+}));
+
+actualizarCampos();
+calcular();
+</script>
+</body>
+</html>
